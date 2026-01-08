@@ -1,0 +1,69 @@
+
+.grid-container {
+    display: grid;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    margin: 20px auto;
+    width: fit-content;
+}
+
+.grid-cell {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.grid-cell:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.grid-cell.selected {
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.8rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.selected .circle {
+    transform: scale(1.1);
+}
+
+.circle-red {
+    background: linear-gradient(135deg, #ef4444, #991b1b);
+}
+
+.circle-green {
+    background: linear-gradient(135deg, #22c55e, #15803d);
+}
+
+.circle-blue {
+    background: linear-gradient(135deg, #3b82f6, #1e40af);
+}
+
+.circle-label {
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}

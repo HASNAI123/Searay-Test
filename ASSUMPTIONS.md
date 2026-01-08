@@ -1,0 +1,37 @@
+# Assumptions and Design Decisions
+
+## Assumptions
+
+1.  **Movement Mechanics (Lifting vs. Sliding)**
+    *   *Assumption:* The robot can lift circles and place them anywhere on the grid, even if there is empty space below them (floating).
+    *   *Reasoning:* If we strictly enforced gravity (circles must always fall), moving a circle from the bottom of a stack to the top of another would be extremely difficult or impossible without complex "sliding" puzzles. Allowing "floating" simulates a robot arm holding the object or placing it on a temporary shelf, making the game playable and solvable.
+
+2.  **Stacking Logic & "Above" Relationship**
+    *   *Assumption:* The stacking rules (e.g., "Red cannot have any circles above them") apply strictly to the vertical relationship. This includes:
+        *   Placing a circle *onto* another circle.
+        *   Moving a circle *under* a floating circle.
+    *   *Reasoning:* This prevents circumvention of rules by "building upwards from the bottom" validation holes.
+
+3.  **Grid Boundaries**
+    *   *Assumption:* The robot cannot move circles outside the 5x7 grid.
+    *   *Reasoning:* Standard boundary constraints for a grid-based puzzle.
+
+4.  **Game State Persistence**
+    *   *Assumption:* The game state does not need to persist after a server restart.
+    *   *Reasoning:* For a take-home test of this scope, in-memory storage is sufficient.
+
+## Design Decisions
+
+### 1. Client-Server Architecture
+*   **Decision:** Split the application into a distinct Frontend (React) and Backend (Node.js/Express).
+*   **Justification:** 
+    *   **Requirement Compliance:** The challenge explicitly asked for a frontend to receive commands and a backend to process them.
+    *   **Security & Integrity:** The backend acts as the single source of truth for the game state and validation rules. This prevents client-side manipulation (e.g., bypassing stacking rules in the browser console).
+
+### 2. Validation Logic Placement
+*   **Decision:** Implement strict move validation in the Backend (`gameLogic.ts`).
+*   **Justification:** While frontend validation provides immediate user feedback, backend validation is critical for integrity. By centralizing the logic in the `Game` class, we ensure that every state change is legal, regardless of how the API is called.
+
+### 3. Technology Stack Choice
+*   **Frontend (React + Vite + TypeScript):** Chosen for its component-based model (perfect for a Grid UI), rapid development speed (Vite), and type safety (TypeScript interfaces shared with backend).
+*   **Backend (Express + TypeScript):** Chosen for its minimalism and ease of setting up RESTful endpoints. TypeScript ensures that data structures are consistent across the full stack.
