@@ -21,8 +21,9 @@ export const Grid: React.FC<GridProps> = ({ gameState, selectedCircleId, onSelec
             }}
         >
             {grid.flatMap((row, rIndex) =>
-                row.map((cellValue, cIndex) => {
-                    const circle = cellValue ? circles[cellValue] : null;
+                row.map((stack, cIndex) => {
+                    const topCircleId = stack.length > 0 ? stack[stack.length - 1] : null;
+                    const circle = topCircleId ? circles[topCircleId] : null;
                     const isSelected = circle?.id === selectedCircleId;
 
                     return (
@@ -35,6 +36,9 @@ export const Grid: React.FC<GridProps> = ({ gameState, selectedCircleId, onSelec
                                 <div className={`circle circle-${circle.color.toLowerCase()}`}>
                                     <span className="circle-label">{circle.id}</span>
                                 </div>
+                            )}
+                            {stack.length > 1 && (
+                                <div className="stack-badge">{stack.length}</div>
                             )}
                         </div>
                     );

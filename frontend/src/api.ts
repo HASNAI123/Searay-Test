@@ -17,7 +17,7 @@ export interface MoveResult {
 }
 
 export interface GameState {
-    grid: (string | null)[][];
+    grid: string[][][];
     circles: Record<string, Circle>;
     rows: number;
     cols: number;

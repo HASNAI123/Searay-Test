@@ -21,57 +21,61 @@ interface MoveHistory {
 }
 
 export class Game {
-    public gridIds: (string | null)[][]; // grid[row][col] stores circle ID
+    // gridIds[row][col] is a STACK (array) of string IDs.
+    // Index 0 is Bottom, Last Index is Top.
+    public gridIds: string[][][];
     public circles: Map<string, Circle>;
     public positions: Map<string, Position>;
     public history: MoveHistory[] = [];
 
     // Grid dimensions
-    public readonly ROWS = 5;
-    public readonly COLS = 7;
+    public readonly ROWS = 3;
+    public readonly COLS = 3;
 
     constructor() {
-        this.gridIds = Array(this.ROWS).fill(null).map(() => Array(this.COLS).fill(null));
+        this.gridIds = [];
         this.circles = new Map();
         this.positions = new Map();
         this.reset();
     }
 
     reset() {
-        this.gridIds = Array(this.ROWS).fill(null).map(() => Array(this.COLS).fill(null));
+        // Initialize 3x3 Grid of Stacks
+        this.gridIds = Array(this.ROWS).fill(null).map(() =>
+            Array(this.COLS).fill(null).map(() => [])
+        );
         this.circles.clear();
         this.positions.clear();
         this.history = [];
 
-        // Initialize with some circles scattered on the left
-        this.addCircle('c1', 'Red', 4, 0);
-        this.addCircle('c2', 'Green', 4, 1);
-        this.addCircle('c3', 'Blue', 4, 2);
-        this.addCircle('c4', 'Red', 3, 0); // Stacked on c1 (Red on Red - Wait, is Red on Red allowed?)
-        // Rule: Red cannot have any circles *above* them. So c4 on c1 is INVALID if c1 is Red.
-        // Let's place them on ground for now.
+        // Initialize 3x3 Layout (1 circle per cell initially)
+        // Mapping: Red->Red, Teal->Green, Dark->Blue
 
-        // Let's retry valid initial placement
-        this.gridIds = Array(this.ROWS).fill(null).map(() => Array(this.COLS).fill(null));
-        this.circles.clear();
-        this.positions.clear();
+        // Row 2 (Bottom) - Image: Dark, Teal, Red
+        this.addCircle('c7', 'Blue', 2, 0);
+        this.addCircle('c8', 'Green', 2, 1);
+        this.addCircle('c9', 'Red', 2, 2);
 
-        this.addCircle('c1', 'Red', 4, 0);
-        this.addCircle('c2', 'Green', 4, 1);
-        this.addCircle('c3', 'Blue', 4, 2);
-        this.addCircle('c4', 'Green', 3, 1); // Green on Green? OK
-        this.addCircle('c5', 'Red', 2, 1); // Red on Green? OK 
+        // Row 1 (Middle) - Image: Dark, Red, Teal
+        this.addCircle('c4', 'Blue', 1, 0);
+        this.addCircle('c5', 'Red', 1, 1);
+        this.addCircle('c6', 'Green', 1, 2);
+
+        // Row 0 (Top) - Image: Red, Teal, Dark
+        this.addCircle('c1', 'Red', 0, 0);
+        this.addCircle('c2', 'Green', 0, 1);
+        this.addCircle('c3', 'Blue', 0, 2);
     }
 
     addCircle(id: string, color: Color, row: number, col: number) {
         this.circles.set(id, { id, color });
         this.positions.set(id, { row, col });
-        this.gridIds[row][col] = id;
+        this.gridIds[row][col].push(id);
     }
 
     state() {
         return {
-            grid: this.gridIds,
+            grid: this.gridIds, // Now returns Stacks
             circles: Object.fromEntries(this.circles),
             rows: this.ROWS,
             cols: this.COLS
@@ -92,66 +96,34 @@ export class Game {
             return { valid: false, message: 'Diagonal movement not allowed' };
         }
 
-        // 3. Collision (Target occupied?)
-        // If simply moving in space (not falling), we can't move INTO a circle.
-        // Unless we interpret "move" as "swap" or "push". Instructions say "Robot move... stack".
-        // Usually means moving ONE circle to an EMPTY spot.
-        if (this.gridIds[toRow][toCol] !== null) {
-            return { valid: false, message: 'Target position occupied' };
+        // 3. Stack Logic: MUST be top of proper stack
+        const sourceStack = this.gridIds[currentPos.row][currentPos.col];
+        if (sourceStack.length === 0 || sourceStack[sourceStack.length - 1] !== circleId) {
+            return { valid: false, message: 'Can only move the TOP circle' };
         }
 
-        // 4. Stacking Rules
-        // Rule applies if there is a circle BELOW the target position.
-        if (toRow < this.ROWS - 1) {
-            const circleBelowId = this.gridIds[toRow + 1][toCol];
-            if (circleBelowId && circleBelowId !== circleId) {
-                const circleBelow = this.circles.get(circleBelowId)!;
-                const movingCircle = this.circles.get(circleId)!;
+        const movingCircle = this.circles.get(circleId)!;
+        const targetStack = this.gridIds[toRow][toCol];
 
-                // Rule: Red circles cannot have any circles above them.
-                if (circleBelow.color === 'Red') {
-                    return { valid: false, message: 'Cannot place anything on top of Red' };
-                }
+        // 4. Stacking Rules (Check against TOP of Target Stack)
+        if (targetStack.length > 0) {
+            const circleBelowId = targetStack[targetStack.length - 1]; // Top of target
+            const circleBelow = this.circles.get(circleBelowId)!;
 
-                // Rule: Blue circles can only have red circles placed above them.
-                if (circleBelow.color === 'Blue') {
-                    if (movingCircle.color !== 'Red') {
-                        return { valid: false, message: 'Only Red can be placed on Blue' };
-                    }
-                }
-
-                // Rule: Green circles can have any color stacked on top. (No Restriction)
+            // Rule: Red circles cannot have any circles above them.
+            if (circleBelow.color === 'Red') {
+                return { valid: false, message: 'Cannot place anything on top of Red' };
             }
-        }
 
-        // Check ABOVE
-        // If we move UNDER a floating circle, we must ensure WE don't violate OUR rules.
-        if (toRow > 0) {
-            const circleAboveId = this.gridIds[toRow - 1][toCol];
-            if (circleAboveId && circleAboveId !== circleId) {
-                const circleAbove = this.circles.get(circleAboveId)!;
-                const movingCircle = this.circles.get(circleId)!;
-
-                // Rule: Red circles cannot have any circles above them.
-                if (movingCircle.color === 'Red') {
-                    return { valid: false, message: 'Red circles cannot have any circles above them' };
-                }
-
-                // Rule: Blue circles can only have red circles placed above them.
-                if (movingCircle.color === 'Blue') {
-                    if (circleAbove.color !== 'Red') {
-                        return { valid: false, message: 'Blue circles can only have Red circles above them' };
-                    }
+            // Rule: Blue circles can only have red circles placed above them.
+            if (circleBelow.color === 'Blue') {
+                if (movingCircle.color !== 'Red') {
+                    return { valid: false, message: 'Only Red can be placed on Blue' };
                 }
             }
-        }
 
-        // 5. Physics/Gravity check? 
-        // "Stack them" implies we shouldn't leave floating circles.
-        // We allow floating to enable lifting and stacking manually.
-        // if (toRow < this.ROWS - 1 && this.gridIds[toRow + 1][toCol] === null) {
-        //      return { valid: false, message: 'Cannot float in air' };
-        // }
+            // Rule: Green circles can have any color stacked on top. (No Restriction)
+        }
 
         return { valid: true };
     }
@@ -184,9 +156,12 @@ export class Game {
             return { success: false, message: validation.message };
         }
 
-        // Execute Move
-        this.gridIds[pos.row][pos.col] = null;
-        this.gridIds[toRow][toCol] = circleId;
+        // Execute Move (Pop & Push)
+        // Remove from old (Assumed to be top from validation)
+        this.gridIds[pos.row][pos.col].pop();
+
+        // Add to new
+        this.gridIds[toRow][toCol].push(circleId);
         this.positions.set(circleId, { row: toRow, col: toCol });
 
         const won = this.checkWinCondition();

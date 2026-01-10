@@ -4,10 +4,13 @@ import { api, type GameState } from './api';
 import { Grid } from './components/Grid';
 import './App.css';
 
+import { solveGame } from './solver';
+
 function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSolving, setIsSolving] = useState(false);
 
   const fetchState = async () => {
     try {
@@ -30,8 +33,15 @@ function App() {
     setError(null);
   };
 
+  const handleSolve = async () => {
+    if (isSolving) return;
+    setIsSolving(true);
+    await solveGame(fetchState);
+    setIsSolving(false);
+  };
+
   const handleMove = useCallback(async (direction: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT') => {
-    if (!selectedCircleId) return;
+    if (!selectedCircleId || isSolving) return;
 
     try {
       const { result, state } = await api.move(selectedCircleId, direction);
@@ -50,7 +60,7 @@ function App() {
       console.error(err);
       setError('Error executing move');
     }
-  }, [selectedCircleId]);
+  }, [selectedCircleId, isSolving]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -91,8 +101,11 @@ function App() {
         )}
 
         <div className="controls">
-          <button className="btn btn-reset" onClick={handleReset}>Reset Game</button>
-          <button className="btn btn-primary" onClick={api.downloadCSV}>Download History CSV</button>
+          <button className="btn btn-reset" onClick={handleReset} disabled={isSolving}>Reset Game</button>
+          <button className="btn btn-primary" onClick={handleSolve} disabled={isSolving}>
+            {isSolving ? 'Solving...' : 'Auto Solve'}
+          </button>
+          <button className="btn btn-secondary" onClick={api.downloadCSV} disabled={isSolving}>Download History CSV</button>
         </div>
 
         <div className="legend">
